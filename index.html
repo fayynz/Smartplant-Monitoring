@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smartplant Monitoring - Live Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-[#0f172a] text-slate-100 font-sans min-h-screen selection:bg-emerald-500/30">
+
+    <nav class="bg-[#1e293b]/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-700/50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0">
+        <div class="flex items-center gap-2 sm:gap-3">
+            <img src="logo.png" alt="Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain" onerror="this.src='https://cdn-icons-png.flaticon.com/512/628/628283.png'">
+            <span class="text-lg sm:text-xl font-bold tracking-wider text-emerald-400 text-center sm:text-left">Smartplant Monitoring</span>
+        </div>
+        <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm w-fit">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Real-time Connected
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        
+        <div class="bg-[#1e293b]/60 backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-slate-700/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold">Dashboard IoT Tanaman</h1>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1">Sistem kendali otomatis berbasis persentase kelembapan tanah.</p>
+            </div>
+            
+            <div class="flex bg-[#0f172a] p-1.5 rounded-xl border border-slate-700 w-full md:w-fit justify-center">
+                <button onclick="ubahMode('otomatis')" id="btn-auto" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400">🤖 Otomatis</button>
+                <button onclick="ubahMode('manual')" id="btn-manual" class="flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400">🎛️ Manual</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between h-36 sm:h-40 shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Suhu Udara</span>
+                <h2 class="text-2xl sm:text-3xl font-black mt-1 sm:text-white"><span id="val-suhu">0</span><span class="text-lg font-normal text-slate-400">°C</span></h2>
+                <span id="lbl-suhu" class="mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">Memuat...</span>
+            </div>
+
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between h-36 sm:h-40 shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Kelembaban Udara</span>
+                <h2 class="text-2xl sm:text-3xl font-black mt-1 sm:text-white"><span id="val-kelembaban">0</span><span class="text-lg font-normal text-slate-400">%</span></h2>
+                <span id="lbl-kelembaban" class="mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">Memuat...</span>
+            </div>
+
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between h-36 sm:h-40 shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Kelembaban Tanah</span>
+                <h2 class="text-2xl sm:text-3xl font-black mt-1 sm:text-white"><span id="val-tanah">0</span><span class="text-lg font-normal text-slate-400">%</span></h2>
+                <span id="lbl-tanah" class="mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">Memuat...</span>
+            </div>
+
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between h-36 sm:h-40 shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Intensitas Cahaya</span>
+                <h2 class="text-2xl sm:text-3xl font-black mt-1 sm:text-white"><span id="val-cahaya">0</span><span class="text-lg font-normal text-slate-400">%</span></h2>
+                <span id="lbl-cahaya" class="mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">Memuat...</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Status Pompa Air</span>
+                <h2 id="val-pompa-text" class="text-lg sm:text-xl font-black mt-2 text-white tracking-wide">MATI</h2>
+                <span id="lbl-pompa-mode" class="mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">MODE: -</span>
+            </div>
+
+            <div class="bg-[#1e293b]/60 p-5 rounded-2xl border border-slate-700/60 flex flex-col justify-between shadow-lg">
+                <span class="text-[10px] sm:text-xs font-semibold tracking-wider text-slate-400 uppercase">Kondisi Tanaman</span>
+                <h2 id="val-kesimpulan" class="text-lg sm:text-xl font-black mt-2 text-white tracking-wide truncate">Menganalisis...</h2>
+                <span id="lbl-status-tanaman" class="mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit">Mengecek...</span>
+            </div>
+        </div>
+
+        <div id="kontrol-manual" class="bg-[#1e293b]/40 p-5 sm:p-6 rounded-2xl border border-slate-700/50 text-center transition-all duration-300">
+            <h3 class="text-xs sm:text-sm font-medium text-slate-400 mb-3 uppercase tracking-wider">Kontrol Sakelar Fisik (Mode Manual)</h3>
+            <div class="flex flex-col sm:flex-row justify-center gap-3 max-w-sm mx-auto sm:max-w-none">
+                <button onclick="setPompa(1)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg text-sm active:scale-95">🚰 Jalankan Pompa (ON)</button>
+                <button onclick="setPompa(0)" class="w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg text-sm active:scale-95">🛑 Matikan Pompa (OFF)</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCm3TaD8TPpR_AM9wR8CdOiyM0PNw0Y4MA",
+            authDomain: "monitoring-tanaman-80a42.firebaseapp.com",
+            databaseURL: "https://monitoring-tanaman-80a42-default-rtdb.firebaseio.com",
+            projectId: "monitoring-tanaman-80a42",
+            storageBucket: "monitoring-tanaman-80a42.firebasestorage.app",
+            messagingSenderId: "798032147954",
+            appId: "1:798032147954:web:19cc3ac49f99e96235e76b"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Autentikasi Anonim Web
+        auth.signInAnonymously()
+            .then(() => {
+                console.log("Web Dashboard Berhasil Login secara Anonim!");
+            })
+            .catch((error) => {
+                console.error("Web Gagal Login Auth:", error.message);
+            });
+
+        let globalMode = "otomatis";
+
+        database.ref('kontrol').on('value', (snapshot) => {
+            const data = snapshot.val() || { mode: "otomatis", pompa: 0 };
+            globalMode = data.mode;
+            const statusPompa = data.pompa;
+
+            if(globalMode === 'otomatis') {
+                document.getElementById('btn-auto').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all bg-emerald-500 text-slate-900 shadow font-semibold";
+                document.getElementById('btn-manual').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-slate-200";
+                document.getElementById('kontrol-manual').classList.add('opacity-30', 'pointer-events-none');
+            } else {
+                document.getElementById('btn-manual').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all bg-emerald-500 text-slate-900 shadow font-semibold";
+                document.getElementById('btn-auto').className = "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-slate-400 hover:text-slate-200";
+                document.getElementById('kontrol-manual').classList.remove('opacity-30', 'pointer-events-none');
+            }
+
+            document.getElementById('val-pompa-text').innerText = statusPompa == 1 ? "MENYIRAM" : "MATI";
+            document.getElementById('lbl-pompa-mode').innerText = `MODE: ${globalMode.toUpperCase()}`;
+            if(statusPompa == 1) {
+                document.getElementById('val-pompa-text').className = "text-lg sm:text-xl font-black mt-2 text-cyan-400 tracking-wide animate-pulse";
+                document.getElementById('lbl-pompa-mode').className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+            } else {
+                document.getElementById('val-pompa-text').className = "text-lg sm:text-xl font-black mt-2 text-slate-400 tracking-wide";
+                document.getElementById('lbl-pompa-mode').className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-slate-400 bg-slate-500/10 border-slate-500/20";
+            }
+        });
+
+        database.ref('sensor').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
+
+            const suhu = data.suhu || 0;
+            const kelembabanUdara = data.kelembaban_udara || 0;
+            const cahayaRaw = data.cahaya || 0;
+            const tanahRaw = data.kelembaban_tanah || 0;
+
+            const persenTanah = Math.round(100 - ((tanahRaw / 4095) * 100));
+            const persenCahaya = Math.round(100 - ((cahayaRaw / 4095) * 100));
+
+            document.getElementById('val-suhu').innerText = suhu;
+            document.getElementById('val-kelembaban').innerText = kelembabanUdara;
+            document.getElementById('val-tanah').innerText = persenTanah;
+            document.getElementById('val-cahaya').innerText = persenCahaya;
+
+            let cardMerah = 0;
+            let listMasalah = [];
+
+            // Evaluasi Suhu
+            const lblSuhu = document.getElementById('lbl-suhu');
+            if(suhu <= 30) {
+                lblSuhu.innerText = "Ideal";
+                lblSuhu.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+            } else {
+                lblSuhu.innerText = "Panas";
+                lblSuhu.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-rose-400 bg-rose-500/10 border-rose-500/20";
+                cardMerah++;
+                listMasalah.push("Suhu Terlalu Panas");
+            }
+
+            // Evaluasi Kelembaban Udara
+            const lblKelembaban = document.getElementById('lbl-kelembaban');
+            if(kelembabanUdara < 40) {
+                lblKelembaban.innerText = "Kering";
+                lblKelembaban.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-rose-400 bg-rose-500/10 border-rose-500/20";
+                cardMerah++;
+                listMasalah.push("Udara Kering");
+            } else if(kelembabanUdara >= 40 && kelembabanUdara <= 75) {
+                lblKelembaban.innerText = "Normal / Ideal";
+                lblKelembaban.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+            } else {
+                lblKelembaban.innerText = "Sangat Basah";
+                lblKelembaban.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+            }
+
+            // Evaluasi Kelembaban Tanah
+            const lblTanah = document.getElementById('lbl-tanah');
+            if(persenTanah < 30) {
+                lblTanah.innerText = "Kering";
+                lblTanah.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-rose-400 bg-rose-500/10 border-rose-500/20";
+                cardMerah++;
+                listMasalah.push("Tanah Kering");
+            } else if(persenTanah >= 30 && persenTanah <= 70) {
+                lblTanah.innerText = "Lembab / Ideal";
+                lblTanah.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+            } else {
+                lblTanah.innerText = "Sangat Basah";
+                lblTanah.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+            }
+
+            // Evaluasi Intensitas Cahaya
+            const lblCahaya = document.getElementById('lbl-cahaya');
+            if(persenCahaya < 30) {
+                lblCahaya.innerText = "Gelap";
+                lblCahaya.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-slate-400 bg-slate-500/10 border-slate-500/20";
+                cardMerah++;
+                listMasalah.push("Kurang Cahaya");
+            } else if(persenCahaya >= 30 && persenCahaya <= 75) {
+                lblCahaya.innerText = "Redup / Teduh";
+                lblCahaya.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-amber-400 bg-amber-500/10 border-amber-500/20";
+            } else {
+                lblCahaya.innerText = "Terang / Terik";
+                lblCahaya.className = "mt-2 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-yellow-400 bg-yellow-500/10 border-yellow-500/20 animate-pulse";
+            }
+
+            document.getElementById('val-kesimpulan').innerText = cardMerah === 0 ? "Kondisi Lingkungan Ideal" : listMasalah.join(", ");
+
+            const lblStatusTanaman = document.getElementById('lbl-status-tanaman');
+            if (cardMerah === 0) {
+                lblStatusTanaman.innerText = "🟢 Semua aman.";
+                lblStatusTanaman.className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+            } else if (cardMerah === 1) {
+                lblStatusTanaman.innerText = "🟡 Perlu cek ringan.";
+                lblStatusTanaman.className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-amber-400 bg-amber-500/10 border-amber-500/20";
+            } else if (cardMerah === 2) {
+                lblStatusTanaman.innerText = "🟠 Butuh perhatian.";
+                lblStatusTanaman.className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-orange-400 bg-orange-500/10 border-orange-500/20";
+            } else if (cardMerah === 3) {
+                lblStatusTanaman.innerText = "🔴 Kondisi buruk.";
+                lblStatusTanaman.className = "mt-3 text-[11px] sm:text-xs font-medium px-2.5 py-1 rounded-lg border w-fit text-rose-400 bg-rose-500/10 border-rose-500/20 animate-pulse";
+            } else {
+                lblStatusTanaman.innerText = "☠️ Hampir mati.";
+                lblStatusTanaman.className = "mt-3 text-[11px] sm:text-xs px-2.5 py-1 rounded-lg border w-fit text-red-600 bg-red-950/30 border-red-900/50 font-black animate-bounce";
+            }
+
+            // --- LOGIKA SISTEM OTOMATISASI ---
+            console.log("--- DEBUG LOG IOT ---");
+            console.log("Persen Tanah Saat Ini:", persenTanah + "%");
+            console.log("Mode Aktif:", globalMode);
+
+            if(globalMode === 'otomatis') {
+                if(persenTanah < 35) {
+                    console.log("Kondisi: Kering (<35%). Tembak ON (1) ke Firebase.");
+                    database.ref('kontrol/pompa').set(1);
+                } else if(persenTanah >= 50) {
+                    console.log("Kondisi: Sudah Lembab (>=50%). Tembak OFF (0) ke Firebase.");
+                    database.ref('kontrol/pompa').set(0);
+                } else {
+                    console.log("Kondisi: Berada di rentang tunggu Hysteresis.");
+                }
+            }
+            console.log("----------------------");
+        });
+
+        function ubahMode(modePilihan) {
+            database.ref('kontrol/mode').set(modePilihan);
+        }
+
+        function setPompa(statusAngka) {
+            if(globalMode === 'manual') {
+                database.ref('kontrol/pompa').set(statusAngka);
+            }
+        }
+    </script>
+</body>
+</html>
